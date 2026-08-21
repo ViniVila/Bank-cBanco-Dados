@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "SENAI Bank",
+    "slug": "senai-bank",
+    "version": "1.1.0",
+    "orientation": "portrait",
+    "platforms": [
+      "android",
+      "ios",
+      "web"
+    ],
+    "plugins": [
+      "expo-sqlite"
+    ]
+  }
+}
