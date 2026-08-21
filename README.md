@@ -1,224 +1,366 @@
-# Ajuste visual da exportação
+<div align="center">
 
-O botão **Exportar banco (.db)** agora aparece no topo da tela **Banco de Dados**, logo abaixo do nome do banco e da tabela. Assim ele fica visível sem precisar rolar até o final da página.
+# 🏦 SENAI Bank — Banco de Dados Relacional (SQLite)
 
-# CORREÇÃO — Exportação Web e Mobile
+![SQLite](https://img.shields.io/badge/SQLite-3-07405e?style=for-the-badge&logo=sqlite&logoColor=white)
+![SQL](https://img.shields.io/badge/SQL-CRUD%20%2B%20JOIN-4479A1?style=for-the-badge&logo=postgresql&logoColor=white)
+![React Native](https://img.shields.io/badge/React%20Native-0.81-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![Expo](https://img.shields.io/badge/Expo-54-000020?style=for-the-badge&logo=expo&logoColor=white)
 
-Nesta versão, a exportação foi corrigida para funcionar de forma diferente conforme a plataforma.
+![plataformas](https://img.shields.io/badge/plataformas-Android%20%7C%20iOS%20%7C%20Web-2ea44f?style=flat-square)
+![relacionamento](https://img.shields.io/badge/relacionamento-1%3AN-2ea44f?style=flat-square)
+![tipo](https://img.shields.io/badge/tipo-atividade%20acadêmica-1e90ff?style=flat-square)
+![dupla](https://img.shields.io/badge/modalidade-dupla-1e90ff?style=flat-square)
+![licença](https://img.shields.io/badge/licença-MIT-lightgrey?style=flat-square)
 
-## Navegador / Web
+</div>
 
-O app **não usa `expo-file-system` para exportar o banco na Web**.
+---
 
-Em vez disso:
+## 📌 Sobre o projeto
 
-1. o `expo-sqlite` serializa o banco com `serializeAsync()`;
-2. o navegador recebe os bytes do banco;
-3. o app cria um arquivo binário `.db`;
-4. o navegador faz o download de:
+O **SENAI Bank** evoluiu de uma tabela única de movimentações para um
+**banco de dados relacional** completo, capaz de identificar corretamente
+**quem** é o cliente e **em qual conta** cada movimentação ocorreu.
 
-```text
-senai_bank_aula_sqlite.db
+O banco agora conta com três tabelas relacionadas por chave primária e
+chave estrangeira:
+
+- 👤 Cadastro de **clientes**;
+- 💳 **Contas** vinculadas a cada cliente;
+- 💰 **Movimentações** (receitas e despesas) vinculadas a cada conta;
+- 🔗 Consultas com `INNER JOIN` unindo as três tabelas;
+- 🧮 Cálculo automático de receitas, despesas e saldo por conta;
+- 🛠️ CRUD completo (`INSERT`, `SELECT`, `UPDATE`, `DELETE`) via console SQL do app.
+
+---
+
+## 🧩 Modelagem do banco
+
+```
+┌─────────────────────────┐
+│        CLIENTES         │
+│──────────────────────────│
+│ PK id_cliente            │
+│    nome                  │
+│    email                 │
+└────────────┬─────────────┘
+             │ 1
+             │ possui
+             │ N
+┌────────────▼─────────────┐
+│          CONTAS           │
+│───────────────────────────│
+│ PK id_conta                │
+│    numero_conta            │
+│    saldo_inicial           │
+│ FK id_cliente ──► clientes │
+└────────────┬───────────────┘
+             │ 1
+             │ possui
+             │ N
+┌────────────▼─────────────────┐
+│        MOVIMENTACOES          │
+│────────────────────────────────│
+│ PK id                          │
+│    descricao                   │
+│    valor                       │
+│    tipo                        │
+│    categoria                   │
+│    data                        │
+│ FK id_conta ──► contas         │
+└─────────────────────────────────┘
 ```
 
-Esse arquivo é um banco SQLite real e pode ser aberto no DB Browser for SQLite ou ferramenta equivalente.
+| Relacionamento | Cardinalidade |
+|---|---|
+| `clientes` → `contas` | 1 cliente para N contas |
+| `contas` → `movimentacoes` | 1 conta para N movimentações |
 
-## Android / iOS
+---
 
-O aplicativo continua usando:
-
-```text
-expo-file-system
-expo-sharing
-```
-
-para copiar e compartilhar o arquivo físico do banco.
-
-## Pacotes
-
-```bash
-npx expo install expo-sqlite expo-file-system expo-sharing
-```
-
-
-# SENAI Bank — Administrador + Exportação SQLite
-
-Alterações:
-- opção explícita de voltar nas telas operacionais;
-- login administrativo antes do Console SQL: usuário `admin`, senha `12345`;
-- exportação de uma cópia física `.db`;
-- Extrato permanece somente leitura.
-
-Instale também:
-
-```bash
-npx expo install expo-file-system expo-sharing
-```
-
-Ao tocar em **Exportar arquivo do banco (.db)**, o app prepara uma cópia e abre
-o compartilhamento/seletor do sistema. No Android, escolha Arquivos/Downloads
-para salvar o arquivo. Isso é necessário porque o Expo Go não deve gravar
-silenciosamente na pasta pública Downloads.
-
-
-# SENAI Bank — SQLite + Console SQL Didático
-
-Nesta versão, a manutenção do banco é feita por uma área livre para comandos SQL.
-
-Na tela **Banco de Dados**, o estudante pode escrever diretamente:
-
-- SELECT
-- INSERT
-- UPDATE
-- DELETE
-- CREATE TABLE
-- ALTER TABLE
-- DROP TABLE
-- PRAGMA
-
-O Extrato agora é somente leitura: foram retirados os botões de edição e exclusão.
-
-Exemplo:
+## 🗂️ Estrutura das tabelas
 
 ```sql
-SELECT * FROM movimentacoes ORDER BY id DESC;
+CREATE TABLE clientes (
+    id_cliente INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT NOT NULL,
+    email TEXT NOT NULL
+);
+
+CREATE TABLE contas (
+    id_conta INTEGER PRIMARY KEY AUTOINCREMENT,
+    numero_conta TEXT NOT NULL UNIQUE,
+    saldo_inicial REAL NOT NULL,
+    id_cliente INTEGER NOT NULL,
+    FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente)
+);
+
+CREATE TABLE movimentacoes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    descricao TEXT NOT NULL,
+    valor REAL NOT NULL,
+    tipo TEXT NOT NULL,
+    categoria TEXT NOT NULL,
+    data TEXT NOT NULL,
+    id_conta INTEGER NOT NULL,
+    FOREIGN KEY (id_conta) REFERENCES contas(id_conta)
+);
 ```
 
-```sql
-INSERT INTO movimentacoes
-(descricao, valor, tipo, categoria, data)
-VALUES
-('Bolsa auxílio', 1500, 'receita', 'Salário', datetime('now'));
-```
+### 📊 Dados já populados no banco entregue
 
-```sql
-UPDATE movimentacoes
-SET valor = 1600
-WHERE id = 1;
-```
+| Cliente | Conta | Movimentações |
+|---|:---:|:---:|
+| João Santos | `10001` | 3 |
+| Ana Lima | `10002` | 3 |
+| Carlos Eduardo | `10003` | 4 |
 
-```sql
-DELETE FROM movimentacoes
-WHERE id = 1;
-```
+**Total:** 3 clientes · 3 contas · 10 movimentações (receitas e despesas)
 
-Após INSERT, UPDATE e DELETE, Dashboard e Extrato são recarregados a partir do banco.
+---
 
-> Atenção: os comandos digitados são executados de verdade no SQLite do aplicativo.
-
-
-
-## IMPORTANTE — BANCO NOVO E VAZIO
-
-Esta versão usa um novo arquivo de banco:
-
-```text
-senai_bank_aula_sqlite.db
-```
-
-Isso foi feito para evitar que registros persistidos de versões anteriores apareçam na aula.
-
-Na primeira execução desta versão, a tabela `movimentacoes` começa vazia.
-
-Depois que você cadastrar registros, eles permanecerão gravados normalmente entre as execuções do aplicativo.
-
-# SENAI Bank — SQLite + CRUD + Visualizador Didático — CORRIGIDO
-
-## O que foi corrigido
-
-A versão anterior criava a tabela com `CREATE TABLE IF NOT EXISTS`.
-Esse comando não altera uma tabela antiga que já exista no aparelho.
-
-Se o estudante já tivesse executado uma versão anterior do SENAI Bank,
-o arquivo `senai_bank_aula_sqlite.db` poderia conter uma tabela `movimentacoes`
-com estrutura diferente. Nesse cenário, o `INSERT` podia falhar.
-
-Esta versão:
-
-- abre sempre o mesmo banco `senai_bank_aula_sqlite.db`;
-- verifica a estrutura com `PRAGMA table_info(movimentacoes)`;
-- adiciona automaticamente colunas que estiverem faltando;
-- usa `runAsync()` com parâmetros em array;
-- verifica `lastInsertRowId` e `changes`;
-- só atualiza a interface depois que o `INSERT` termina;
-- mostra erro de gravação na tela caso o SQLite rejeite o comando;
-- mostra mensagem de sucesso após salvar;
-- mantém uma única conexão com o banco;
-- permite visualizar a estrutura real da tabela e seus registros.
-
-## Dependência nova
-
-Dentro do projeto:
-
-```bash
-npx expo install expo-sqlite
-```
-
-A navegação continua exigindo:
+## ▶️ Como executar o projeto
 
 ```bash
 npm install @react-navigation/native @react-navigation/native-stack
 npx expo install react-native-screens react-native-safe-area-context
-```
+npx expo install expo-sqlite expo-file-system expo-sharing
 
-## Execução recomendada nesta aula
-
-```bash
 npx expo start
 ```
 
-Abra pelo **Expo Go no celular**.
+Abra pelo **Expo Go** no celular ou em um emulador.
 
-## Teste obrigatório
+> O app abre sempre o mesmo arquivo `senai_bank_aula_sqlite.db`, verifica a
+> estrutura com `PRAGMA table_info` e adiciona automaticamente colunas
+> faltantes — evitando falha de `INSERT` em bancos de versões anteriores.
 
-1. Entre no app.
-2. Cadastre:
-   - descrição: Bolsa auxílio
-   - valor: 1500,00
-   - tipo: Receita
-   - categoria: Salário
-3. Salve.
-4. Deve aparecer a mensagem:
-   `Movimentação gravada no SQLite.`
-5. Abra `Visualizar Banco SQLite`.
-6. A tela deve mostrar:
-   - estrutura da tabela;
-   - `Registros reais encontrados: 1`;
-   - os dados gravados.
-7. Feche completamente o aplicativo.
-8. Abra novamente.
-9. O registro deve continuar aparecendo.
+---
 
-## Se quiser começar com um banco totalmente novo
+## 🖥️ Console SQL do app
 
-A versão corrigida tenta preservar e migrar bancos antigos.
+Tela **Banco de Dados** — acesso administrativo:
 
-Se você quiser apagar todo o histórico anterior para uma demonstração
-do zero, remova os dados do aplicativo/Expo Go no aparelho ou utilize
-um novo nome de banco temporariamente.
+![usuário](https://img.shields.io/badge/usuário-admin-333?style=flat-square)
+![senha](https://img.shields.io/badge/senha-12345-333?style=flat-square)
 
-## Fluxo
+Comandos suportados diretamente no app:
 
-```text
-FORMULÁRIO
-    ↓
-validação
-    ↓
-INSERT
-    ↓
-senai_bank_aula_sqlite.db
-    ↓
-SELECT
-    ↓
-setMovements()
-    ↓
-Dashboard / Extrato
+`SELECT` · `INSERT` · `UPDATE` · `DELETE` · `CREATE TABLE` · `ALTER TABLE` · `DROP TABLE` · `PRAGMA`
 
-Banco de Dados
-    ↓
-PRAGMA table_info
-+
-SELECT *
-    ↓
-estrutura + registros reais
+Após `INSERT`, `UPDATE` ou `DELETE`, o Dashboard e o Extrato são recarregados
+automaticamente. O Extrato é **somente leitura** (sem edição/exclusão pela UI).
+
+> ⚠️ Os comandos são executados de verdade no SQLite do app — não há simulação.
+
+---
+
+## 📤 Exportação do banco (.db)
+
+O botão **Exportar banco (.db)** fica no topo da tela **Banco de Dados**.
+
+| Plataforma | Como funciona |
+|---|---|
+| 🌐 **Web** | `expo-sqlite` serializa o banco com `serializeAsync()` e o navegador baixa `senai_bank_aula_sqlite.db`, que pode ser aberto no DB Browser for SQLite. |
+| 📱 **Android / iOS** | `expo-file-system` + `expo-sharing` copiam o arquivo físico e abrem o compartilhamento do sistema (no Android, salvar em Arquivos/Downloads). |
+
+---
+
+## 🔁 CRUD demonstrado
+
+```sql
+-- CREATE
+INSERT INTO movimentacoes (descricao, valor, tipo, categoria, data, id_conta)
+VALUES ('Teste Cinema', 40.00, 'Despesa', 'Lazer', '2026-08-08', 1);
+
+-- READ
+SELECT * FROM movimentacoes WHERE id = 11;
+
+-- UPDATE
+UPDATE clientes SET email = 'joao.santos@senai.com' WHERE id_cliente = 1;
+
+-- DELETE
+DELETE FROM movimentacoes WHERE id = 11;
 ```
+
+---
+
+## 🔎 Consultas obrigatórias (1 a 10)
+
+**1. Quais clientes estão cadastrados?**
+```sql
+SELECT * FROM clientes;
+```
+
+**2. Quais contas pertencem a cada cliente?**
+```sql
+SELECT c.nome, ct.numero_conta
+FROM clientes c
+INNER JOIN contas ct ON c.id_cliente = ct.id_cliente;
+```
+
+**3. Quais movimentações pertencem a determinada conta?** *(ex.: `id_conta = 1`)*
+```sql
+SELECT * FROM movimentacoes WHERE id_conta = 1;
+```
+
+**4. Quem é o cliente responsável por determinada movimentação?** *(ex.: `id = 1`)*
+```sql
+SELECT c.nome, m.descricao, m.valor
+FROM movimentacoes m
+INNER JOIN contas ct ON m.id_conta = ct.id_conta
+INNER JOIN clientes c ON ct.id_cliente = c.id_cliente
+WHERE m.id = 1;
+```
+
+**5. Quais movimentações são receitas?**
+```sql
+SELECT * FROM movimentacoes WHERE tipo = 'Receita';
+```
+
+**6. Quais movimentações são despesas?**
+```sql
+SELECT * FROM movimentacoes WHERE tipo = 'Despesa';
+```
+
+**7. Qual o total de receitas de uma conta?** *(ex.: `id_conta = 1`)*
+```sql
+SELECT SUM(valor) AS total_receitas
+FROM movimentacoes
+WHERE tipo = 'Receita' AND id_conta = 1;
+```
+
+**8. Qual o total de despesas de uma conta?** *(ex.: `id_conta = 1`)*
+```sql
+SELECT SUM(valor) AS total_despesas
+FROM movimentacoes
+WHERE tipo = 'Despesa' AND id_conta = 1;
+```
+
+**9. Qual o saldo calculado de uma conta?** *(ex.: `id_conta = 1`)*
+```sql
+SELECT
+    SUM(CASE WHEN tipo = 'Receita' THEN valor ELSE 0 END) -
+    SUM(CASE WHEN tipo = 'Despesa' THEN valor ELSE 0 END) AS saldo_calculado
+FROM movimentacoes
+WHERE id_conta = 1;
+```
+
+**10. Cliente + conta + movimentações em uma única consulta com `INNER JOIN`**
+```sql
+SELECT
+    c.nome AS Cliente,
+    ct.numero_conta AS Conta,
+    m.descricao AS Descricao,
+    m.tipo AS Tipo,
+    m.valor AS Valor
+FROM clientes c
+INNER JOIN contas ct ON c.id_cliente = ct.id_cliente
+INNER JOIN movimentacoes m ON ct.id_conta = m.id_conta;
+```
+
+<details>
+<summary>📋 Resultado esperado da consulta 10</summary>
+
+| Cliente | Conta | Descrição | Tipo | Valor |
+|---|:---:|---|---|---:|
+| João Santos | 10001 | Salário | Receita | 2500.00 |
+| João Santos | 10001 | Supermercado | Despesa | 350.00 |
+| João Santos | 10001 | Transporte | Despesa | 150.00 |
+| Ana Lima | 10002 | Bolsa auxílio | Receita | 1800.00 |
+| Ana Lima | 10002 | Farmácia | Despesa | 120.00 |
+| Ana Lima | 10002 | Pix Recebido | Receita | 500.00 |
+| Carlos Eduardo | 10003 | Projeto Freelance | Receita | 3000.00 |
+| Carlos Eduardo | 10003 | Conta de Luz | Despesa | 210.00 |
+| Carlos Eduardo | 10003 | Restaurante | Despesa | 90.00 |
+| Carlos Eduardo | 10003 | Internet | Despesa | 130.00 |
+
+</details>
+
+---
+
+## 🏆 Desafio adicional — relatório financeiro
+
+Consulta que apresenta `CLIENTE | CONTA | RECEITAS | DESPESAS | SALDO` por
+conta, usando `SUM`, `CASE`, `GROUP BY` e `LEFT JOIN`:
+
+```sql
+SELECT
+    c.nome AS CLIENTE,
+    ct.numero_conta AS CONTA,
+    COALESCE(SUM(CASE WHEN m.tipo = 'Receita' THEN m.valor ELSE 0 END), 0) AS RECEITAS,
+    COALESCE(SUM(CASE WHEN m.tipo = 'Despesa' THEN m.valor ELSE 0 END), 0) AS DESPESAS,
+    (ct.saldo_inicial +
+     COALESCE(SUM(CASE WHEN m.tipo = 'Receita' THEN m.valor ELSE 0 END), 0) -
+     COALESCE(SUM(CASE WHEN m.tipo = 'Despesa' THEN m.valor ELSE 0 END), 0)) AS SALDO
+FROM clientes c
+INNER JOIN contas ct ON c.id_cliente = ct.id_cliente
+LEFT JOIN movimentacoes m ON ct.id_conta = m.id_conta
+GROUP BY c.id_cliente, ct.id_conta;
+```
+
+<details>
+<summary>📋 Resultado esperado</summary>
+
+| CLIENTE | CONTA | RECEITAS | DESPESAS | SALDO |
+|---|:---:|---:|---:|---:|
+| João Santos | 10001 | 2500.00 | 500.00 | 2000.00 |
+| Ana Lima | 10002 | 2300.00 | 120.00 | 2180.00 |
+| Carlos Eduardo | 10003 | 3000.00 | 430.00 | 2570.00 |
+
+</details>
+
+> 💡 O `LEFT JOIN` garante que contas sem nenhuma movimentação ainda apareçam
+> no relatório, com receitas/despesas zeradas.
+
+---
+
+## 📱 Integração com o app
+
+Pelo menos uma tela do app consome os dados relacionados (cliente + conta +
+extrato):
+
+```
+SENAI Bank
+Cliente: João Santos
+Conta: 10001
+────────────────────────────
+Salário          Receita   + R$ 2.500,00
+Supermercado     Despesa   − R$ 350,00
+Transporte       Despesa   − R$ 150,00
+```
+
+---
+
+## ✅ Checklist de entrega
+
+- [x] Criação das três tabelas (`clientes`, `contas`, `movimentacoes`)
+- [x] Chaves primárias (`id_cliente`, `id_conta`, `id`)
+- [x] Chaves estrangeiras (`contas.id_cliente`, `movimentacoes.id_conta`)
+- [x] Cadastro de 3 clientes
+- [x] Cadastro de 3 contas (uma por cliente)
+- [x] Cadastro de 10 movimentações (receitas e despesas)
+- [x] `INSERT`, `SELECT`, `UPDATE` e `DELETE` funcionando
+- [x] Consulta com `INNER JOIN` (clientes + contas + movimentações)
+- [x] Relatório com `SUM`, `CASE` e `GROUP BY`
+- [ ] Capturas de tela / evidências no app
+- [ ] Arquivo `.db` exportado anexado à entrega
+- [ ] Breve explicação da solução (apresentação)
+
+---
+
+## 📁 Arquivos deste repositório
+
+| Arquivo | Descrição |
+|---|---|
+| `senai_bank_aula_sqlite.db` | Banco SQLite exportado, já populado com clientes, contas e movimentações |
+| `README.md` | Este documento |
+
+<div align="center">
+
+---
+
+Projeto desenvolvido para fins educacionais — **SENAI**
+
+</div>
